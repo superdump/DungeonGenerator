@@ -66,11 +66,26 @@ public class MapGenerator : MonoBehaviour
                         var ok = true;
                         foreach (var room in rooms)
                         {
-                            ok &= !r.Overlaps((UnityEngine.Rect)room);
+                            ok &= !r.Overlaps((Rect)room);
                         }
                         if (ok)
                         {
                             ApplyRoomToMap(r, ref bitset);
+                            if (rooms.Count != 0)
+                            {
+                                var center = r.center;
+                                var centerPrev = ((Rect)rooms[rooms.Count - 1]).center;
+                                if (Random.Range(0, 2) == 0)
+                                {
+                                    ApplyHorizontalTunnel(ref bitset, (int)centerPrev.x, (int)center.x, (int)centerPrev.y);
+                                    ApplyVerticalTunnel(ref bitset, (int)centerPrev.y, (int)center.y, (int)center.x);
+                                }
+                                else
+                                {
+                                    ApplyVerticalTunnel(ref bitset, (int)centerPrev.y, (int)center.y, (int)centerPrev.x);
+                                    ApplyHorizontalTunnel(ref bitset, (int)centerPrev.x, (int)center.x, (int)center.y);
+                                }
+                            }
                             rooms.Add(r);
                         }
                     }
@@ -100,8 +115,8 @@ public class MapGenerator : MonoBehaviour
                         prefab = floorPrefab;
                         break;
                 }
-                var obj = Instantiate(prefab, mapParent.transform.position + offset, Quaternion.identity, mapParent.transform);
-                obj.transform.localScale = new Vector3(step, 1.0f, step);
+                var obj = Instantiate(prefab, mapParent.transform.position + offset, prefab.transform.rotation, mapParent.transform);
+                obj.transform.localScale = new Vector3(step, step, step);
                 map[z, x] = obj;
             }
         }
@@ -120,7 +135,13 @@ public class MapGenerator : MonoBehaviour
 
     void ApplyHorizontalTunnel(ref BitArray m, int xMin, int xMax, int z)
     {
-        for (int i = gridSize * z + xMin; i < gridSize * z + xMax; i++)
+        if (xMin > xMax)
+        {
+            int tmp = xMin;
+            xMin = xMax;
+            xMax = tmp;
+        }
+        for (int i = gridSize * z + xMin; i <= gridSize * z + xMax; i++)
         {
             m.Set(i, true);
         }
@@ -128,7 +149,13 @@ public class MapGenerator : MonoBehaviour
 
     void ApplyVerticalTunnel(ref BitArray m, int zMin, int zMax, int x)
     {
-        for (int z = zMin; z < zMax; z++)
+        if (zMin > zMax)
+        {
+            int tmp = zMin;
+            zMin = zMax;
+            zMax = tmp;
+        }
+        for (int z = zMin; z <= zMax; z++)
         {
             m.Set(gridSize * z + x, true);
         }
