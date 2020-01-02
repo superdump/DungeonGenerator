@@ -16,7 +16,9 @@ public class MapGenerator : MonoBehaviour
     public GameObject floorPrefab;
     public int gridSize = 200;
     public float worldSize = 20;
-    public int maxRooms = 10;
+    public int maxRooms = 30;
+    public int minRoomSize = 6;
+    public int maxRoomSize = 10;
 
     private GameObject[,] map;
     private GameObject mapParent;
@@ -48,15 +50,30 @@ public class MapGenerator : MonoBehaviour
         Vector3 offset = new Vector3(-0.5f * worldSize, 0.0f, -0.5f * worldSize);
         float step = worldSize / gridSize;
         var bitset = new BitArray(gridSize * gridSize);
+        var rooms = new ArrayList();
 
         switch (method)
         {
             case METHOD.ROOMS_AND_CORRIDORS:
                 {
-                    var r1 = new Rect(20, 15, 10, 15);
-                    var r2 = new Rect(35, 15, 10, 15);
-                    ApplyRoomToMap(r1, ref bitset);
-                    ApplyRoomToMap(r2, ref bitset);
+                    for (int i = 0; i < maxRooms; i++)
+                    {
+                        var w = Random.Range(minRoomSize, maxRoomSize);
+                        var h = Random.Range(minRoomSize, maxRoomSize);
+                        var x = Random.Range(0, gridSize - w);
+                        var y = Random.Range(0, gridSize - h);
+                        var r = new Rect(x, y, w, h);
+                        var ok = true;
+                        foreach (var room in rooms)
+                        {
+                            ok &= !r.Overlaps((UnityEngine.Rect)room);
+                        }
+                        if (ok)
+                        {
+                            ApplyRoomToMap(r, ref bitset);
+                            rooms.Add(r);
+                        }
+                    }
                 }
                 break;
             default:
@@ -98,6 +115,22 @@ public class MapGenerator : MonoBehaviour
             {
                 m.Set(z * gridSize + x, true);
             }
+        }
+    }
+
+    void ApplyHorizontalTunnel(ref BitArray m, int xMin, int xMax, int z)
+    {
+        for (int i = gridSize * z + xMin; i < gridSize * z + xMax; i++)
+        {
+            m.Set(i, true);
+        }
+    }
+
+    void ApplyVerticalTunnel(ref BitArray m, int zMin, int zMax, int x)
+    {
+        for (int z = zMin; z < zMax; z++)
+        {
+            m.Set(gridSize * z + x, true);
         }
     }
 }
