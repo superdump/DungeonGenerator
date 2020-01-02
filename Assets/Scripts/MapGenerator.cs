@@ -1,12 +1,19 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum METHOD
+{
+    BORDER,
+    RANDOM,
+}
+
 public class MapGenerator : MonoBehaviour
 {
-    public float worldSize;
-    public GameObject prefab;
-    public int gridSize;
+    public METHOD method = METHOD.BORDER;
+    public GameObject wallPrefab;
+    public int gridSize = 20;
+    public float worldSize = 20;
 
     private GameObject[,] map;
     private GameObject mapParent;
@@ -42,11 +49,26 @@ public class MapGenerator : MonoBehaviour
             offset.x = -0.5f * worldSize;
             for (int x = 0; x < gridSize; x++, offset.x += step)
             {
-                if (x < border || x >= gridSize - border || z < border || z >= gridSize - border)
+                switch (method)
                 {
-                    var obj = Instantiate(prefab, mapParent.transform.position + offset, Quaternion.identity, mapParent.transform);
-                    obj.transform.localScale = new Vector3(step, 1.0f, step);
-                    map[z, x] = obj;
+                    case METHOD.BORDER:
+                        if (x < border || x >= gridSize - border || z < border || z >= gridSize - border)
+                        {
+                            var obj = Instantiate(wallPrefab, mapParent.transform.position + offset, Quaternion.identity, mapParent.transform);
+                            obj.transform.localScale = new Vector3(step, 1.0f, step);
+                            map[z, x] = obj;
+                        }
+                        break;
+                    case METHOD.RANDOM:
+                        if (Random.Range(0, 2) == 0)
+                        {
+                            var obj = Instantiate(wallPrefab, mapParent.transform.position + offset, Quaternion.identity, mapParent.transform);
+                            obj.transform.localScale = new Vector3(step, 1.0f, step);
+                            map[z, x] = obj;
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         }
