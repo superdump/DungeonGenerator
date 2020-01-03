@@ -1,41 +1,63 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
+using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
 
 namespace MapGenerator
 {
     public class MapGenerator : MonoBehaviour
     {
-        public GameObject wallPrefab;
-        public GameObject floorPrefab;
+        public bool useECS = false;
+
+        [Header("Map")]
         public int gridSize = 200;
-        public float worldSize = 20;
         public int maxRooms = 30;
         public int minRoomSize = 6;
         public int maxRoomSize = 10;
 
+        [Header("World")]
+        public float worldSize = 20;
+        public GameObject wallPrefab;
+        public GameObject floorPrefab;
+
         private Map map;
-        private GameObject[,] mapObjs;
+
+        private EntityManager manager;
+        private Entity wallEntityPrefab;
+        private Entity floorEntityPrefab;
+
         private GameObject mapParent;
+
+        private GameObject[,] mapObjs;
+        private Entity[,] mapEntities;
 
         void Start()
         {
-            InitializeMap(false);
+            if (useECS)
+            {
+                manager = World.Active.EntityManager;
+                wallEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(wallPrefab, World.Active);
+                floorEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(floorPrefab, World.Active);
+            }
+            InitializeMap();
         }
 
-        void InitializeMap(bool isValidate)
+        void InitializeMap()
         {
-            if (isValidate)
+            if (useECS)
             {
-                DestroyImmediate(mapParent);
+                mapEntities = new Entity[gridSize, gridSize];
             }
             else
             {
                 Destroy(mapParent);
+                mapParent = new GameObject("Map");
+                mapParent.transform.parent = transform;
+                mapObjs = new GameObject[gridSize, gridSize];
             }
-            mapParent = new GameObject("Map");
-            mapParent.transform.parent = transform;
-            mapObjs = new GameObject[gridSize, gridSize];
             GenerateMap();
         }
 
@@ -53,18 +75,32 @@ namespace MapGenerator
                 for (int x = 0; x < gridSize; x++, offset.x += step)
                 {
                     GameObject prefab;
+                    Entity prefabEnt;
                     switch (map.tiles[z, x])
                     {
                         case TileType.WALL:
                             prefab = wallPrefab;
+                            prefabEnt = wallEntityPrefab;
                             break;
                         default:
                             prefab = floorPrefab;
+                            prefabEnt = floorEntityPrefab;
                             break;
                     }
-                    var obj = Instantiate(prefab, mapParent.transform.position + offset, prefab.transform.rotation, mapParent.transform);
-                    obj.transform.localScale = newScale;
-                    mapObjs[z, x] = obj;
+                    if (useECS)
+                    {
+                        var ent = manager.Instantiate(prefabEnt);
+                        manager.SetComponentData(ent, new Translation { Value = transform.position + offset });
+                        manager.SetComponentData(ent, new Rotation { Value = prefab.transform.rotation });
+                        manager.AddComponentData(ent, new NonUniformScale { Value = newScale });
+                        mapEntities[z, x] = ent;
+                    }
+                    else
+                    {
+                        var obj = Instantiate(prefab, mapParent.transform.position + offset, prefab.transform.rotation, mapParent.transform);
+                        obj.transform.localScale = newScale;
+                        mapObjs[z, x] = obj;
+                    }
                 }
             }
         }
