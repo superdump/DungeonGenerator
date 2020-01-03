@@ -26,5 +26,18 @@ namespace MapGenerator
         {
             return new SimpleMapBuilder().build(gridSize, maxRooms, minRoomSize, maxRoomSize);
         }
+
+        public int CountWalls()
+        {
+            int count = 0;
+            foreach (var tile in tiles)
+            {
+                if (tile == TileType.WALL)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
     }
 }

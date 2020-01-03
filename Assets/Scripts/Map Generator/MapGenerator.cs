@@ -32,7 +32,8 @@ namespace MapGenerator
         private GameObject mapParent;
 
         private GameObject[,] mapObjs;
-        private Entity[,] mapEntities;
+        private NativeArray<Entity> walls;
+        private NativeArray<Entity> floors;
 
         void Start()
         {
@@ -47,11 +48,7 @@ namespace MapGenerator
 
         void InitializeMap()
         {
-            if (useECS)
-            {
-                mapEntities = new Entity[gridSize, gridSize];
-            }
-            else
+            if (!useECS)
             {
                 Destroy(mapParent);
                 mapParent = new GameObject("Map");
@@ -69,31 +66,39 @@ namespace MapGenerator
 
             map = Map.BuildRandom(gridSize, maxRooms, minRoomSize, maxRoomSize);
 
+            int nWalls = map.CountWalls();
+            walls = new NativeArray<Entity>(nWalls, Allocator.TempJob);
+            floors = new NativeArray<Entity>(gridSize * gridSize - nWalls, Allocator.TempJob);
+            manager.Instantiate(wallEntityPrefab, walls);
+            manager.Instantiate(floorEntityPrefab, floors);
+
+            int iWalls = -1;
+            int iFloors = -1;
             for (int z = 0; z < gridSize; z++, offset.z += step)
             {
                 offset.x = -0.5f * worldSize;
                 for (int x = 0; x < gridSize; x++, offset.x += step)
                 {
                     GameObject prefab;
-                    Entity prefabEnt;
+                    Entity ent;
                     switch (map.tiles[z, x])
                     {
                         case TileType.WALL:
+                            iWalls++;
+                            ent = walls[iWalls];
                             prefab = wallPrefab;
-                            prefabEnt = wallEntityPrefab;
                             break;
                         default:
+                            iFloors++;
+                            ent = floors[iFloors];
                             prefab = floorPrefab;
-                            prefabEnt = floorEntityPrefab;
                             break;
                     }
                     if (useECS)
                     {
-                        var ent = manager.Instantiate(prefabEnt);
                         manager.SetComponentData(ent, new Translation { Value = transform.position + offset });
                         manager.SetComponentData(ent, new Rotation { Value = prefab.transform.rotation });
                         manager.AddComponentData(ent, new NonUniformScale { Value = newScale });
-                        mapEntities[z, x] = ent;
                     }
                     else
                     {
@@ -103,6 +108,8 @@ namespace MapGenerator
                     }
                 }
             }
+            walls.Dispose();
+            floors.Dispose();
         }
     }
 }
