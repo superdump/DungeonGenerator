@@ -339,10 +339,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a119e85ed7233448096288e6d5d48939, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  method: 0
+  method: 2
   wallPrefab: {fileID: 7571868342334354395, guid: bbb574bf406cb43f781cc9d29c64ce92,
     type: 3}
-  floorPrefab: {fileID: 0}
-  gridSize: 100
+  floorPrefab: {fileID: 2896628061133864861, guid: be56ce3e85d27478f9bd6adcd990e9be,
+    type: 3}
+  gridSize: 80
   worldSize: 20
   maxRooms: 10
+  minRoomSize: 6
+  maxRoomSize: 10
